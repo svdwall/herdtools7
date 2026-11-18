@@ -1,0 +1,9 @@
+Test A266 Allowed
+States 1
+0:X0=0;
+Ok
+Witnesses
+Positive: 1 Negative: 0
+Condition exists (0:X0=0)
+Observation A266 Always 1 0
+Hash=64657f087136432bd2be71eb18f5c657

@@ -376,7 +376,7 @@ module Make (C:Arch_herd.Config)(V:Value.AArch64) =
       | I_LDRBH (_,r,_,_)
       | I_LDRS (_,r,_,_)
       | I_LDUR (_,r,_,_)
-      | I_LDAR (_,(AA|AQ),r,_) |I_LDARBH (_,(AA|AQ),r,_)
+      | I_LDAR (_,(AA|LA|AQ),r,_) |I_LDARBH (_,(AA|LA|AQ),r,_)
       | I_SWP (_,_,_,r,_) | I_SWPBH (_,_,_,r,_)
       | I_CAS (_,_,r,_,_) | I_CASBH (_,_,r,_,_)
       | I_LDOP (_,_,_,_,r,_) | I_LDOPBH (_,_,_,_,r,_)
@@ -468,7 +468,7 @@ module Make (C:Arch_herd.Config)(V:Value.AArch64) =
       | I_LDAR (var,(XX|AX),_,_)|I_LDXP (var,_,_,_,_) -> MachSize.Ld (tr_variant var)
       | I_LDARBH (bh,(XX|AX),_,_) -> MachSize.Ld (bh_to_sz bh)
       | I_STXR _|I_STXRBH _ | I_STXP _ -> MachSize.St
-      | I_LDAR (_, (AA|AQ), _, _)|I_LDARBH (_, (AA|AQ), _, _)
+      | I_LDAR (_, (AA|LA|AQ), _, _)|I_LDARBH (_, (AA|LA|AQ), _, _)
       | I_NOP|I_B _|I_BR _|I_BC _|I_CBZ _|I_CBNZ _
       | I_TBNZ _|I_TBZ _|I_BL _|I_BLR _|I_RET _|I_ERET | I_SVC _
       | I_UBFM _ | I_SBFM _

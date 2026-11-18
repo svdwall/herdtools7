@@ -1212,6 +1212,7 @@ module Make
       let do_read_mem sz  = do_read_mem_op (uxt_op sz) sz
 
       let read_mem_acquire sz = do_read_mem sz Annot.A
+      let read_mem_acquire_limited sz = do_read_mem sz Annot.LA
       let read_mem_acquire_pc sz = do_read_mem sz Annot.Q
 
       let read_mem_reserve sz an anexp ac rd a ii =
@@ -2058,6 +2059,7 @@ Arguments:
         let an = match t with
         | XX -> Annot.EX
         | AA -> Annot.A
+        | LA -> Annot.LA
         | AX -> Annot.EXA
         | AQ -> Annot.Q in
         do_ldr rs sz an
@@ -2066,6 +2068,7 @@ Arguments:
               match t with
               | XX -> read_mem_reserve sz Annot.EX
               | AA -> read_mem_acquire sz
+              | LA -> read_mem_acquire_limited sz
               | AX -> read_mem_reserve sz Annot.EXA
               | AQ -> read_mem_acquire_pc sz in
             read aexp ac rd a ii)

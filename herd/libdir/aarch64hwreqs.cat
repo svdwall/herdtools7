@@ -136,6 +136,7 @@ let bob =
  | [Exp & W & L]; po; [Exp & R & A]
  | [(Exp & R & A) | (Exp & R & Q)]; po; [Exp & M | Imp & Tag & R | MMU & FAULT]
  | [Exp & M | Imp & Tag & R]; po; [Exp & W & L]
+ | [Exp & LA]; po & ~(intervening(Exp & M, po)); [Exp & M]
 
 let po-scl-ob =
  [Exp & M]; (po & scl); [DC.CVAU]

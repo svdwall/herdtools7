@@ -1,0 +1,13 @@
+AArch64 MP+rel+LLDAR
+
+{
+    int64_t x; int64_t y;
+    0:X1=x; 0:X2=y; 0:X0=1;
+    1:X1=x; 1:X2=y;
+}
+
+P0            | P1             ;
+STR  X0, [X1] | LLDAR X2, [X2] ;
+STLR X0, [X2] | LDR   X0, [X1] ;
+
+forall not (1:X2=1 /\ 1:X0=0)

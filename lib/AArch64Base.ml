@@ -1251,13 +1251,14 @@ let st_pair_opt_eq (a: st_pair_opt) (b: st_pair_opt) : bool =
   | (`PaL, `PaL) -> true
   | _ -> false
 
-type ld_type = AA | XX | AX | AQ
+type ld_type = AA | XX | AX | AQ | LA
 
 let ldr_memo = function
   | AA -> "LDAR"
   | XX -> "LDXR"
   | AX -> "LDAXR"
   | AQ -> "LDAPR"
+  | LA -> "LLDAR"
 
 type ldxp_type = XP|AXP
 

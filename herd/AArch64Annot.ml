@@ -16,7 +16,7 @@
 
 
 type t =
-  A | XA | L | XL | X | N | Q | XQ | NoRet | S
+  A | XA | L | LA | XL | X | N | Q | XQ | NoRet | S
   | NTA (* Non-Temporal, avoid clash with NT in AArch64Base *)
   | EX | EXA | EXL (* Exclusives *)
 
@@ -40,6 +40,10 @@ let is_acquire = function
   | A | XA | EXA -> true
   | _ -> false
 
+let is_limited_acquire = function
+  | LA -> true
+  | _ -> false
+
 let is_acquire_pc = function
   | Q | XQ -> true
   | _ -> false
@@ -55,6 +59,7 @@ let is_exclusive = function
 let sets = [
     "X", is_atomic;
     "A",  is_acquire;
+    "LA",  is_limited_acquire;
     "Q",  is_acquire_pc;
     "L",  is_release;
     "NoRet", is_noreturn;
@@ -66,6 +71,7 @@ let sets = [
 let pp = function
   | XA -> "Acq*"
   | A -> "Acq"
+  | LA -> "AcqLim"
   | Q -> "AcqPc"
   | XQ -> "AcqPc*"
   | XL -> "Rel*"

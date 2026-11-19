@@ -1,0 +1,9 @@
+Test A267 Allowed
+States 1
+0:X0=0;
+Ok
+Witnesses
+Positive: 1 Negative: 0
+Condition exists (0:X0=0)
+Observation A267 Always 1 0
+Hash=c94d7a9c108d304b7a9f3ec7515960d6

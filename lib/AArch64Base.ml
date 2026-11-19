@@ -1443,6 +1443,7 @@ type 'k kinstruction =
   | I_LDP of ld_pair_opt * variant * reg * reg * reg * 'k idx
   | I_LDPSW of reg * reg * reg * 'k idx
   | I_LDAR of variant * ld_type * reg * reg
+  | I_CLLDAR of reg * variant * reg * reg
   | I_LDXP of variant * ldxp_type * reg * reg * reg
   (* Stores *)
   | I_STR of variant * reg * reg * 'k MemExt.ext
@@ -2082,6 +2083,11 @@ let do_pp_instruction m =
     pp_memo memo ^ " " ^ pp_vsimdreg v rt ^
     "," ^ pp_addr ra idx in
 
+  let pp_clldar r1 v2 r2 r3 kr  =
+    let pp_addr = if C.is_morello then pp_creg else pp_xreg in
+    pp_reg r1 ^ " " ^ pp_vreg v2 r2 ^
+    ",[" ^ pp_addr r3 ^ pp_kr true false kr ^ "]" in
+
   let pp_smemp memo v r1 r2 ra idx =
     pp_memo memo ^ " " ^
     pp_vsimdreg v r1 ^ "," ^
@@ -2187,6 +2193,8 @@ let do_pp_instruction m =
       pp_memp (stp_memo t) v r1 r2 r3 idx
   | I_LDAR (v,t,r1,r2) ->
       pp_mem (ldr_memo t) v r1 r2 m.k0
+  | I_CLLDAR (r1,v2,r2,r3) ->
+      pp_clldar r1 v2 r2 r3 m.k0
   | I_LDARBH (bh,t,r1,r2) ->
       pp_mem (ldrbh_memo bh t)  V32 r1 r2 m.k0
   | I_LDXP (v,t,r1,r2,r3) ->
@@ -2741,6 +2749,7 @@ let fold_regs (f_regs,f_sregs) =
   | I_CSEAL (r1,r2,r3) | I_SEAL (r1,r2,r3) | I_UNSEAL (r1,r2,r3)
   | I_SC (_,r1,r2,r3)
   | I_LDP_SIMD (_,_,r1,r2,r3,_)
+  | I_CLLDAR (r1,_,r2,r3)
   | I_STP_SIMD (_,_,r1,r2,r3,_)
   | I_OP3_SIMD (_,r1,r2,r3) | I_ADD_SIMD (r1,r2,r3) | I_ADD_SIMD_S (r1,r2,r3)
   | I_LDXP (_,_,r1,r2,r3)
@@ -2856,6 +2865,8 @@ let map_regs f_reg f_symb =
      I_STP (t,v,map_reg r1,map_reg r2,map_reg r3,idx)
   | I_LDAR (v,t,r1,r2) ->
      I_LDAR (v,t,map_reg r1,map_reg r2)
+  | I_CLLDAR (r1,v2,r2,r3) ->
+     I_CLLDAR (map_reg r1,v2, map_reg r2,map_reg r3)
   | I_LDARBH (bh,t,r1,r2) ->
      I_LDARBH (bh,t,map_reg r1,map_reg r2)
   | I_LDXP (v,t,r1,r2,r3) ->
@@ -3215,6 +3226,7 @@ let get_next =
   | I_STR _
   | I_LDAR _
   | I_LDARBH _
+  | I_CLLDAR _
   | I_STLR _
   | I_STLRBH _
   | I_STXR _
@@ -3673,6 +3685,7 @@ module PseudoI = struct
         | I_RET _
         | I_ERET
         | I_LDAR _
+        | I_CLLDAR _
         | I_LDARBH _
         | I_STLR _
         | I_STLRBH _
@@ -3828,7 +3841,7 @@ module PseudoI = struct
       | _ -> assert false
 
       let get_naccesses ins = match ins with
-        | I_LDR _ | I_LDRSW _ | I_LDAR _ | I_LDARBH _ | I_LDUR _ | I_LDRS _
+        | I_LDR _ | I_LDRSW _ | I_LDAR _ | I_LDARBH _ | I_CLLDAR _ | I_LDUR _ | I_LDRS _
         | I_STR _ | I_STLR _ | I_STLRBH _ | I_STXR _
         | I_LDRBH _ | I_STRBH _ | I_STXRBH _ | I_IC _ | I_DC _
         | I_STG _ | I_LDG _

@@ -103,6 +103,7 @@ let keyword_list = [
   "ldrsh", LDRSH;
   "ldar", LDAR;
   "lldar", LLDAR;
+  "clldar", CLLDAR;
   "ldarb", LDARB;
   "ldarh", LDARH;
   "ldapr", LDAPR;

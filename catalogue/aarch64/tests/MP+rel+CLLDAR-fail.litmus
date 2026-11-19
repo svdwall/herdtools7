@@ -1,0 +1,15 @@
+AArch64 MP+rel+CLLDAR-fail
+
+{
+    int64_t x; int64_t y; int64_t z;
+    0:X0=1; 0:X1=x; 
+    1:X0=1; 1:X4=y; 1:X3=z;
+    2:X1=x; 2:X4=y; 2:X3=z;
+}
+P0           | P1            | P2                   ;
+STR X0, [X1] | STR X0, [X4]  | LDR X5, [X1]         ;
+             | STLR X0, [X3] | CLLDAR X5, X6, [X3]  ;
+             |               | LDR X0, [X1]         ;
+             |               | LDR X7,[X4]          ;
+
+exists (2:X5=1 /\ 2:X6=1 /\ 2:X7=0)

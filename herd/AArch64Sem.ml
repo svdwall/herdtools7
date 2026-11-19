@@ -4238,6 +4238,16 @@ Arguments:
         | I_LDARBH(bh,t,rd,rs) ->
             let sz = bh_to_sz bh in
             ldar sz t rd rs ii
+        | I_CLLDAR (rs,vt,rt,ra) ->
+            let sz = tr_variant vt in
+            let success_branch = ldar sz LA rt ra ii in
+            let fail_branch = ldr sz rt ra MemExt.zero ii in
+            read_reg_data_sz sz rs ii
+            >>= is_not_zero
+            >>= fun v -> 
+                M.bind_control_set_data_input_first
+                (commit_pred ii)
+                (fun () -> M.choiceT v success_branch fail_branch)
         | I_STR(var,rs,rd,e) ->
             str (tr_variant var) rs rd e ii
         | I_STRBH(bh,rs,rd,e) ->

@@ -1,0 +1,251 @@
+# herd workflow — the four phases of herd-workflow.md, left to right.
+# Each phase: what happens (top), the relevant structs/modules, and examples.
+# Render:   d2 --watch herd-workflow.d2
+#           d2 herd-workflow.d2 herd-workflow.svg
+# Function and struct names are links to the source on GitHub, pinned to commit
+# 03c4483 of the fork (D2 does not substitute variables inside markdown, so the
+# full URL is spelled out in each link; change the commit hash everywhere at once).
+
+vars: {
+  d2-config: {
+    layout-engine: elk
+  }
+}
+
+direction: right
+
+classes: {
+  phase: {
+    grid-columns: 1
+    vertical-gap: 24
+    style: {
+      fill: "#e8f0fe"
+      stroke: "#3b6fd8"
+      stroke-width: 2
+      border-radius: 10
+      font-size: 24
+      bold: true
+    }
+  }
+  structs: {
+    label: "Structs / modules"
+    grid-columns: 2
+    horizontal-gap: 16
+    vertical-gap: 12
+    style: {
+      fill: "#f6f8fc"
+      stroke: "#9aa7bd"
+      border-radius: 6
+      font-size: 14
+      italic: true
+    }
+  }
+  struct: {
+    shape: rectangle
+    width: 340
+    style: {
+      fill: "#fff8e6"
+      stroke: "#8a6d1f"
+      border-radius: 4
+      font-size: 14
+    }
+  }
+  examples: {
+    shape: rectangle
+    style: {
+      fill: "#ffffff"
+      stroke: "#9aa7bd"
+      stroke-dash: 3
+      border-radius: 6
+      font-size: 14
+    }
+  }
+  io: {
+    style: {
+      fill: "#ffffff"
+      stroke: "#5b6475"
+    }
+  }
+  handoff: {
+    style: {
+      stroke: "#3b6fd8"
+      stroke-width: 2
+      font-size: 14
+    }
+  }
+}
+
+# ───────────────────────── Inputs / output ─────────────────────────
+
+litmus: "litmus test\n(.litmus)" {shape: page; class: io}
+cat: "memory model\n(.cat)" {shape: page; class: io}
+
+result: "outcomes\nstates histogram · Ok/No ·\nPositive/Negative" {
+  shape: document
+  class: io
+}
+
+# ───────────────────────── 1 · Parsing ─────────────────────────
+
+parsing: "1 · Parsing" {
+  class: phase
+
+  desc: |md
+    Menhir parsers transform the litmus test and the cat model into the
+    internal representations [**test_herd**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/test_herd.mli#L20) and [**model**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/model.mli#L23):
+
+    1. [**parseTest**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/parseTest.ml#L88) selects the architecture ([**Archs.parse**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/lib/Archs.ml#L48))
+       and the cat model, and
+    2. [**selects**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/parseTest.ml#L168) the architecture's litmus parser to
+       construct [**runTest**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/runTest.ml#L65)
+  |
+
+  structs: {
+    class: structs
+    test: |md
+      [**Test_herd.t**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/test_herd.mli#L20) \
+      internal representation \
+      of the litmus program
+    | {class: struct}
+    model: |md
+      [**Model.t**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/model.mli#L23) \
+      internal representation \
+      of the cat model
+    | {class: struct}
+    parser: |md
+      [**XXXParser.mly**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/lib/AArch64Parser.mly) \
+      architecture grammar & \
+      token-to-object translation
+    | {class: struct}
+  }
+
+  examples: |md
+    *Examples:* [**LDR**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/lib/AArch64Parser.mly#L700) · [**CBZ**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/lib/AArch64Parser.mly#L693)
+  | {class: examples}
+}
+
+# ───────────────────────── 2 · Candidates ─────────────────────────
+
+candidates: "2 · Construct Candidate Event Structures" {
+  class: phase
+
+  desc: |md
+    [**glommed_event_structures**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/mem.ml#L342) generates potential
+    control-flow-fixed event structures, collecting
+    thread-local constraints for register values.
+    It generates only iico and po edges, no rf/co edges yet:
+
+    1. translates instructions into constraint lists & event
+       structures via [**AArch64Sem**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/AArch64Sem.ml#L4120) (iico edges)
+    2. then stitches them together with the
+       [**code monad**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/eventsMonad.ml#L1125) (po edges)
+  |
+
+  structs: {
+    class: structs
+    drivers: |md
+      [**runTest.ml**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/runTest.ml) / [**top_herd.ml**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/top_herd.ml) \
+      dispatch and oversight \
+      to run a test
+    | {class: struct}
+    monad: |md
+      [**monad.mli**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/monad.mli) / [**eventsMonad.ml**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/eventsMonad.ml) \
+      binders for constructing \
+      potential event structures
+    | {class: struct}
+    sem: |md
+      [**XXXSem.ml**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/AArch64Sem.ml) \
+      uses the binders to translate each \
+      instruction into events + iico edges
+    | {class: struct}
+  }
+
+  examples: |md
+    *Examples:* [**LDR**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/AArch64Sem.ml#L4221) · [**CBZ**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/AArch64Sem.ml#L4195)
+  | {class: examples}
+}
+
+# ───────────────────────── 3 · Concrete ─────────────────────────
+
+concrete: "3 · Generate Concrete Event Structures" {
+  class: phase
+
+  desc: |md
+    [**exec_iter**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/top_herd.ml#L493) folds over the candidates;
+    [**iter_rfms**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/top_herd.ml#L310) fixes their read-from relations:
+
+    1. solve thread-local constraints ([**do_solve_regs**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/mem.ml#L1092));
+       drop the candidate if unsolvable
+    2. enumerate memory rf relations and their value
+       equations ([**solve_mem_or_res**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/mem.ml#L1379))
+    3. [solve](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/mem.ml#L1416) each rf choice's constraints; drop it if unsolvable
+    4. choose co-maximal (final) writes per location and
+       build the concrete event structures ([**fold_mem_finals**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/mem.ml#L2244))
+  |
+
+  structs: {
+    class: structs
+    drivers: |md
+      [**runTest.ml**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/runTest.ml) / [**top_herd.ml**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/top_herd.ml) \
+      dispatch and oversight \
+      to run a test
+    | {class: struct}
+    rfmap: |md
+      [**S.rfmap**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/semExtra.ml#L134) \
+      which event each read got its value from \
+      (registers, memory, final writes)
+    | {class: struct}
+    conc: |md
+      [**S.concrete**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/semExtra.ml#L170) \
+      event structure + rfmap \
+      \+ final writes (inside rfmap)
+    | {class: struct}
+  }
+}
+
+# ───────────────────────── 4 · Checking ─────────────────────────
+
+checking: "4 · Check Concrete Event Structures" {
+  class: phase
+
+  desc: |md
+    The interpreter executes the cat model line by line
+    on each concrete event structure ([**call_model**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/top_herd.ml#L496)) to
+    decide whether it is allowed:
+
+    1. set base relations in the initial environment
+    2. execute each line of the model ([**interpret**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/lib/interpreter.ml#L1262)) until
+       a check fails or the model has fully executed
+    3. collect the allowed concrete event structures
+  |
+
+  structs: {
+    class: structs
+    ast: |md
+      [**AST.t**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/lib/AST.mli#L117) \
+      internal representation \
+      of the parsed cat syntax
+    | {class: struct}
+    v: |md
+      [**V.v**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/lib/interpreter.ml#L275) \
+      values that cat expressions can take
+    | {class: struct}
+    env: |md
+      [**V.env**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/lib/interpreter.ml#L290) \
+      maps cat variables to their values
+    | {class: struct}
+  }
+
+  examples: |md
+    *Examples:* [**dependency-ordered-before**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/libdir/aarch64hwreqs.cat#L93) · [**dtrm**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/libdir/aarch64deps.cat#L61) · [**aarch64 constraints**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/libdir/aarch64.cat#L160)
+  | {class: examples}
+}
+
+# ───────────────────────── Hand-offs ─────────────────────────
+
+litmus -> parsing
+cat -> parsing
+parsing -> candidates: "Test_herd.t" {class: handoff}
+candidates -> concrete: "candidates\n+ constraints" {class: handoff}
+concrete -> checking: "each S.concrete" {class: handoff}
+checking -> result: "allowed\nexecutions" {class: handoff}

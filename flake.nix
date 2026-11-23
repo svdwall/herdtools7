@@ -25,7 +25,7 @@
     # `nix develop`
     devShells.default = pkgs.mkShell {
       inputsFrom = [ self.packages.${system}.default ];
-      packages = with ocamlPackages; [ ocaml-lsp ocamlformat pkgs.pre-commit pkgs.graphviz ];
+      packages = with ocamlPackages; [ ocaml-lsp ocamlformat pkgs.pre-commit pkgs.graphviz pkgs.d2 ];
     };
   });
 }

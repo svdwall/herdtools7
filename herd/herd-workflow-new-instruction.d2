@@ -1,0 +1,95 @@
+# Implementing a new instruction (LLDAR / CLLDAR), following workflow-new-instruction.md.
+# Render:   d2 --watch herd-workflow-new-instruction.d2
+#           d2 --scale 2 herd-workflow-new-instruction.d2 herd-workflow-new-instruction.svg
+# Links point to the diff hunk in the GitHub commit view of the fork:
+#   cae6291 adds LLDAR (+ LA annotation, bob edge), 03c4483 adds CLLDAR.
+# Format: commit/<sha>#diff-<sha256(path)>R<line in new file>. D2 does not
+# substitute variables inside markdown, so each URL is spelled out.
+
+vars: {
+  d2-config: {
+    layout-engine: elk
+  }
+}
+
+direction: right
+
+classes: {
+  phase: {
+    grid-columns: 1
+    vertical-gap: 24
+    style: {
+      fill: "#e8f0fe"
+      stroke: "#3b6fd8"
+      stroke-width: 2
+      border-radius: 10
+      font-size: 24
+      bold: true
+    }
+  }
+  handoff: {
+    style: {
+      stroke: "#3b6fd8"
+      stroke-width: 2
+      font-size: 14
+    }
+  }
+}
+
+# ───────────────────────── 1 · Instruction, parser, lexer ─────────────────────────
+
+syntax: "1 · Create Instruction, Update Parser / Lexer" {
+  class: phase
+
+  desc: |md
+    Make the litmus syntax parse into an instruction object:
+
+    1. introduce the instruction in **AArch64Base.ml**:
+       [**LLDAR**](https://github.com/svdwall/herdtools7/commit/cae6291049c4e2d52cb199b785d7f510315243e5#diff-87c59e17c30b4a451f5222d06442d112d13bc5348634c3664db613942d49cf4cR1254) reuses the LDAR struct with a new `ld_type`,
+       [**CLLDAR**](https://github.com/svdwall/herdtools7/commit/03c448313911e11ae29c2171fe4b6409616f0af0#diff-87c59e17c30b4a451f5222d06442d112d13bc5348634c3664db613942d49cf4cR1446) gets its own constructor
+    2. introduce a new annotation: limited acquire
+       ([**LA**](https://github.com/svdwall/herdtools7/commit/cae6291049c4e2d52cb199b785d7f510315243e5#diff-05772012f80903bb4d4dc5c9998c03e96d3a69e1f313be7d2e138a89bb93f4d3R19))
+  |
+}
+
+# ───────────────────────── 2 · Semantics ─────────────────────────
+
+semantics: "2 · Instruction Semantics and CAT Semantics" {
+  class: phase
+
+  desc: |md
+    Give the instruction meaning, as events and as ordering:
+
+    3. encode the instruction semantics with the monad binders
+       ([**CLLDAR**](https://github.com/svdwall/herdtools7/commit/03c448313911e11ae29c2171fe4b6409616f0af0#diff-f2a12c2f4bc2d0aa25e415c57b77bfe6c912fb2a2b841e23fc03922cdeafb1ecR4241))
+    4. introduce limited-acquire edges to the cat model
+       ([**bob**](https://github.com/svdwall/herdtools7/commit/cae6291049c4e2d52cb199b785d7f510315243e5#diff-48de46133a6939978d62812c18eb510164eab583412b943fb1674f9d2cb10452R139))
+    5. write integration tests
+       ([**A266**](https://github.com/svdwall/herdtools7/commit/cae6291049c4e2d52cb199b785d7f510315243e5#diff-7e3f509470844ba0a9291375ffa0e902741549ad6a7f6dfbc671b68a4f83515aR1) for LLDAR, [**A267**](https://github.com/svdwall/herdtools7/commit/03c448313911e11ae29c2171fe4b6409616f0af0#diff-3633e9d5635759e4e77a9a37a43f3b06cb1fb62330e06491d4a10f03a6f7e403R1) for CLLDAR)
+  |
+}
+
+# ───────────────────────── 3 · Litmus tests ─────────────────────────
+
+litmus: "3 · Write Litmus Tests to Check Intended Behaviour" {
+  class: phase
+
+  desc: |md
+    For each instruction, one test that the ordering holds and one
+    that it stops at a later memory access:
+
+    6. **LLDAR**
+       - ordering ([**MP+rel+LLDAR**](https://github.com/svdwall/herdtools7/commit/cae6291049c4e2d52cb199b785d7f510315243e5#diff-703014ffa7c91dda91ccc4ef42953c24668cd4d31d182f1d9590d79fa2b114c1R1))
+       - no ordering past a later memory instruction
+         ([**MP+rel+LLDAR-fail**](https://github.com/svdwall/herdtools7/commit/cae6291049c4e2d52cb199b785d7f510315243e5#diff-ba6c4ce62159c99b1487bc99a0e1a5bdc6ea508e7688aa2a90975c5fda101463R1))
+    7. **CLLDAR**
+       - ordering ([**MP+rel+CLLDAR**](https://github.com/svdwall/herdtools7/commit/03c448313911e11ae29c2171fe4b6409616f0af0#diff-e7cf9486ace110b1585c5bab8eac64c890bb98defa07d338c30b9316e70b82e9R1))
+       - no ordering past a later memory instruction
+         ([**MP+rel+CLLDAR-fail**](https://github.com/svdwall/herdtools7/commit/03c448313911e11ae29c2171fe4b6409616f0af0#diff-609655c09c0f39317bb981754e9152c589defcd7ed6830a596a78ef13859f1abR1))
+  |
+}
+
+# ───────────────────────── Hand-offs ─────────────────────────
+
+syntax -> semantics {class: handoff}
+semantics -> litmus {class: handoff}

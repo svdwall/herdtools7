@@ -11,4 +11,4 @@ STR X0, [X1] | STR X0, [X4]  | LDR X5, [X1]         ;
              | STLR X0, [X3] | CLLDAR X5, X6, [X3]  ;
              |               | LDR X7,[X4]          ;
 
-exists (2:X5=1 /\ 2:X6=1 /\ 2:X7=0)
+~exists (2:X5=1 /\ 2:X6=1 /\ 2:X7=0)

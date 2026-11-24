@@ -1,10 +1,11 @@
-# Implementing a new instruction (LLDAR / CLLDAR), following workflow-new-instruction.md.
+# Implementing a new instruction (LLDAR / CLLDAR) on top of the herd workflow:
+# the five phases of herd-workflow.d2, with the files each commit changed placed
+# beneath the phase they belong to (green), and the new litmus tests with the inputs.
 # Render:   d2 --watch herd-workflow-new-instruction.d2
 #           d2 --scale 2 herd-workflow-new-instruction.d2 herd-workflow-new-instruction.svg
-# Links point to the diff hunk in the GitHub commit view of the fork:
-#   cae6291 adds LLDAR (+ LA annotation, bob edge), 03c4483 adds CLLDAR.
-# Format: commit/<sha>#diff-<sha256(path)>R<line in new file>. D2 does not
-# substitute variables inside markdown, so each URL is spelled out.
+# Phase links are pinned to commit 03c4483 of the fork. Change links point to the
+# diff hunk in the GitHub commit view: cae6291 adds LLDAR (+ LA annotation, bob
+# edge), 03c4483 adds CLLDAR. Format: commit/<sha>#diff-<sha256(path)>R<line>.
 
 vars: {
   d2-config: {
@@ -27,6 +28,50 @@ classes: {
       bold: true
     }
   }
+  structs: {
+    label: ""
+    grid-columns: 2
+    horizontal-gap: 16
+    vertical-gap: 12
+    style: {
+      fill: transparent
+      stroke: transparent
+    }
+  }
+  struct: {
+    shape: rectangle
+    width: 340
+    style: {
+      fill: "#fff8e6"
+      stroke: "#8a6d1f"
+      border-radius: 4
+      font-size: 14
+    }
+  }
+  examples: {
+    shape: rectangle
+    style: {
+      fill: transparent
+      stroke: transparent
+      font-size: 14
+    }
+  }
+  io: {
+    style: {
+      fill: "#ffffff"
+      stroke: "#5b6475"
+    }
+  }
+  changes: {
+    shape: rectangle
+    style: {
+      fill: "#e9f7ec"
+      stroke: "#2e8b57"
+      stroke-width: 2
+      border-radius: 10
+      font-size: 14
+    }
+  }
   handoff: {
     style: {
       stroke: "#3b6fd8"
@@ -36,60 +81,269 @@ classes: {
   }
 }
 
-# ───────────────────────── 1 · Instruction, parser, lexer ─────────────────────────
+# Grid layout: row 1 is the workflow, row 2 the changes beneath each phase.
+workflow: {
+  label: ""
+  # rows first: cells fill row by row (row 1 phases, row 2 changes)
+  grid-rows: 2
+  grid-columns: 6
+  horizontal-gap: 120
+  vertical-gap: 40
+  style: {fill: transparent; stroke: transparent}
 
-syntax: "1 · Create Instruction, Update Parser / Lexer" {
-  class: phase
+  # ───────────────────────── Inputs ─────────────────────────
 
-  desc: |md
-    Make the litmus syntax parse into an instruction object:
+  inputs: {
+    label: ""
+    grid-rows: 2
+    vertical-gap: 40
+    style: {fill: transparent; stroke: transparent}
 
-    1. introduce the instruction in **AArch64Base.ml**:
-       [**LLDAR**](https://github.com/svdwall/herdtools7/commit/cae6291049c4e2d52cb199b785d7f510315243e5#diff-87c59e17c30b4a451f5222d06442d112d13bc5348634c3664db613942d49cf4cR1254) reuses the LDAR struct with a new `ld_type`,
-       [**CLLDAR**](https://github.com/svdwall/herdtools7/commit/03c448313911e11ae29c2171fe4b6409616f0af0#diff-87c59e17c30b4a451f5222d06442d112d13bc5348634c3664db613942d49cf4cR1446) gets its own constructor
-    2. introduce a new annotation: limited acquire
-       ([**LA**](https://github.com/svdwall/herdtools7/commit/cae6291049c4e2d52cb199b785d7f510315243e5#diff-05772012f80903bb4d4dc5c9998c03e96d3a69e1f313be7d2e138a89bb93f4d3R19))
-  |
-}
+    litmus: "litmus test\n(.litmus)" {shape: page; class: io}
+    cat: "memory model\n(.cat)" {shape: page; class: io}
+  }
 
-# ───────────────────────── 2 · Semantics ─────────────────────────
+  # ───────────────────────── 1 · Parsing ─────────────────────────
 
-semantics: "2 · Instruction Semantics and CAT Semantics" {
-  class: phase
+  parsing: "1 · Parsing" {
+    class: phase
 
-  desc: |md
-    Give the instruction meaning, as events and as ordering:
+    desc: |md
+      menhir-parsers transform litmus test into the internal representations
+      [**test_herd**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/test_herd.mli#L20) and cat-model [**model**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/model.mli#L23):
 
-    3. encode the instruction semantics with the monad binders
-       ([**CLLDAR**](https://github.com/svdwall/herdtools7/commit/03c448313911e11ae29c2171fe4b6409616f0af0#diff-f2a12c2f4bc2d0aa25e415c57b77bfe6c912fb2a2b841e23fc03922cdeafb1ecR4241))
-    4. introduce limited-acquire edges to the cat model
-       ([**bob**](https://github.com/svdwall/herdtools7/commit/cae6291049c4e2d52cb199b785d7f510315243e5#diff-48de46133a6939978d62812c18eb510164eab583412b943fb1674f9d2cb10452R139))
-    5. write integration tests
-       ([**A266**](https://github.com/svdwall/herdtools7/commit/cae6291049c4e2d52cb199b785d7f510315243e5#diff-7e3f509470844ba0a9291375ffa0e902741549ad6a7f6dfbc671b68a4f83515aR1) for LLDAR, [**A267**](https://github.com/svdwall/herdtools7/commit/03c448313911e11ae29c2171fe4b6409616f0af0#diff-3633e9d5635759e4e77a9a37a43f3b06cb1fb62330e06491d4a10f03a6f7e403R1) for CLLDAR)
-  |
-}
+      1. [**select**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/parseTest.ml#L88) architecture ([**Archs.parse**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/lib/Archs.ml#L48))
+         from the test's architecture string
+      2. [**select**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/parseTest.ml#L168) the architecture's litmus parser
+      3. [**parses**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/runTest.ml#L65) the program (it becomes a [**map**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/archExtra_herd.ml#L83)
+         addr/label → instruction-list)
+    |
 
-# ───────────────────────── 3 · Litmus tests ─────────────────────────
+    structs: {
+      class: structs
+      test: |md
+        [**test_herd.mli**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/test_herd.mli#L20) and [**archExtra_herd.ml**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/archExtra_herd.ml#L83) \
+        internal representation \
+        of the litmus program
+      | {class: struct}
+      parser: |md
+        [**XXXParser.mly**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/lib/AArch64Parser.mly) \
+        architecture grammar & \
+        token-to-object translation
+      | {class: struct}
+    }
 
-litmus: "3 · Write Litmus Tests to Check Intended Behaviour" {
-  class: phase
+    examples: |md
+      *Examples:* [**LDR**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/lib/AArch64Parser.mly#L700) · [**CBZ**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/lib/AArch64Parser.mly#L693)
+    | {class: examples}
+  }
 
-  desc: |md
-    For each instruction, one test that the ordering holds and one
-    that it stops at a later memory access:
+  # ───────────────────────── 2 · Candidates ─────────────────────────
 
-    6. **LLDAR**
-       - ordering ([**MP+rel+LLDAR**](https://github.com/svdwall/herdtools7/commit/cae6291049c4e2d52cb199b785d7f510315243e5#diff-703014ffa7c91dda91ccc4ef42953c24668cd4d31d182f1d9590d79fa2b114c1R1))
-       - no ordering past a later memory instruction
+  candidates: "2 · Construct Candidate Event Structures" {
+    class: phase
+
+    desc: |md
+      [**glommed_event_structures**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/mem.ml#L342) generates potential control-flow-fixed
+      event structures, collecting thread-local constraints for register values.
+      It generates only iico-edges and po-indices (effectively po-edges). No rf/co edges yet.
+
+      1. [**translates**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/AArch64Sem.ml#L4120) instructions into constraint lists & event structures
+         according to its semantics
+      2. [**stitches**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/mem.ml#L652) them together with the
+         [**code monad**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/eventsMonad.ml#L1125) (generating po-indices)
+    |
+
+    structs: {
+      class: structs
+      drivers: |md
+        [**runTest.ml**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/runTest.ml) and [**top_herd.ml**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/top_herd.ml) \
+        dispatch and oversight \
+        to run a test
+      | {class: struct}
+      monad: |md
+        [**monad.mli**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/monad.mli) and [**eventsMonad.ml**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/eventsMonad.ml) \
+        providing binders for the construction \
+        of potential event structures
+      | {class: struct}
+      sem: |md
+        [**XXXSem.ml**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/AArch64Sem.ml) \
+        uses the binders to translate every \
+        instruction into event structures \
+        with iico-edges
+      | {class: struct}
+      es: |md
+        [**eventStructure**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/event.ml#L215) \
+        event structures. holds instruction internal \
+        iico-edges & beyond-instruction po-edges. \
+        Every event has an action with a return type
+      | {class: struct}
+    }
+
+    examples: |md
+      *Examples:* [**LDR**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/AArch64Sem.ml#L4221) · [**CBZ**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/AArch64Sem.ml#L4195)
+    | {class: examples}
+  }
+
+  # ───────────────────────── 3 · Concrete ─────────────────────────
+
+  concrete: "3 · Generate Concrete Event Structures" {
+    class: phase
+
+    desc: |md
+      [**exec_iter**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/top_herd.ml#L493) takes a potential event structure and iterates over
+      concrete instantiations of it with [**iter_rfms**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/top_herd.ml#L310) to fix readfrom relations:
+
+      1. [**solve**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/mem.ml#L1092) its thread-local constraints.
+         discard the potential event structure if not possible.
+      2. [**enumerate**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/mem.ml#L1379) memory rf relations and their constraints
+         (equality of written and read value).
+      3. [**solve**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/mem.ml#L1416) each rf relation's constraints.
+         discard a rf relation if not possible.
+      4. [**partially sets co**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/mem.ml#L2244): (final) writes per location
+         and initial writes come first.
+    |
+
+    structs: {
+      class: structs
+      drivers: |md
+        [**runTest.ml**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/runTest.ml) and [**top_herd.ml**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/top_herd.ml) \
+        dispatch and oversight \
+        to run a test
+      | {class: struct}
+      rfmap: |md
+        [**rfmap**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/semExtra.ml#L134) \
+        keeps track of which event obtained its value \
+        from which other event (both for registers/memory)
+      | {class: struct}
+      conc: |md
+        [**concrete**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/semExtra.ml#L170) \
+        event structure + rfmap \
+        \+ final writes (inside rfmap)
+      | {class: struct}
+    }
+  }
+
+  # ───────────────────────── 4 · Checking ─────────────────────────
+
+  checking: "4 · Check Concrete Event Structures" {
+    class: phase
+
+    desc: |md
+      an interpreter executing the CAT-model line-by-line on the concrete
+      event structure ([**call_model**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/top_herd.ml#L496)) to identify whether the concrete
+      event structure is possible:
+
+      1. [**enumerate**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/libdir/cross.cat#L28) possible co orders and fork further evaluation for each
+      2. [**initialise**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/lib/interpreter.ml#L2738) env with base relations (po, rf, co, iico-data, iico-ctrl)
+      3. [**execute**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/lib/interpreter.ml#L1262) each line of the model
+      4. [**collects**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/top_herd.ml#L496) the concrete event structures, whether rejected or
+         allowed and whether they satisfy postcondition or not.
+    |
+
+    structs: {
+      class: structs
+      model: |md
+        [**model.mli**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/model.mli#L23) \
+        internal representation \
+        of the cat-model
+      | {class: struct}
+      ast: |md
+        [**AST.mli**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/lib/AST.mli#L117) \
+        Internal representation \
+        of parsed CAT-Syntax
+      | {class: struct}
+      st: |md
+        [**st**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/lib/interpreter.ml#L574) \
+        state of cat interpreter, containing [**env**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/lib/interpreter.ml#L324), \
+        the map from var-names to their [**values**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/lib/interpreter.ml#L309) (relations)
+      | {class: struct}
+      count: |md
+        [**Count.t**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/top_herd.ml#L268) \
+        collects the results
+      | {class: struct}
+    }
+
+    examples: |md
+      *Examples:* [**dependency-ordered-before**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/libdir/aarch64hwreqs.cat#L93) · [**dtrm**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/libdir/aarch64deps.cat#L61) · [**aarch64 constraints**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/libdir/aarch64.cat#L160)
+    | {class: examples}
+  }
+
+  # ───────────────────────── 5 · Printing ─────────────────────────
+
+  printing: "5 · Print Results" {
+    class: phase
+
+    desc: |md
+      [**outputs**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/top_herd.ml#L164) the stats collected:
+
+      - Allowed (exists-query) / Forbidden (~exists) / Required (forall)
+      - States: the final states reached by allowed event structures
+        (restricted to variables in constraint)
+      - Ok / No: whether postcondition is true or false
+      - Positive / Negative: count of event structures with true / false postcondition
+    |
+
+    structs: {
+      class: structs
+      stats: |md
+        [**stats**](https://github.com/svdwall/herdtools7/blob/03c448313911e11ae29c2171fe4b6409616f0af0/herd/top_herd.mli#L39) \
+        collected stats during the run
+      | {class: struct}
+    }
+  }
+
+  # ───────────────────────── Row 2: changes ─────────────────────────
+  # (declared in grid order; the empty cells keep the columns aligned)
+  inputs_changes: |md
+    **Write Litmus tests to check intended behaviour**
+
+    1. LLDAR
+       - test for ordering ([**MP+rel+LLDAR**](https://github.com/svdwall/herdtools7/commit/cae6291049c4e2d52cb199b785d7f510315243e5#diff-703014ffa7c91dda91ccc4ef42953c24668cd4d31d182f1d9590d79fa2b114c1R1))
+       - test for non-ordering with later memory instruction
          ([**MP+rel+LLDAR-fail**](https://github.com/svdwall/herdtools7/commit/cae6291049c4e2d52cb199b785d7f510315243e5#diff-ba6c4ce62159c99b1487bc99a0e1a5bdc6ea508e7688aa2a90975c5fda101463R1))
-    7. **CLLDAR**
-       - ordering ([**MP+rel+CLLDAR**](https://github.com/svdwall/herdtools7/commit/03c448313911e11ae29c2171fe4b6409616f0af0#diff-e7cf9486ace110b1585c5bab8eac64c890bb98defa07d338c30b9316e70b82e9R1))
-       - no ordering past a later memory instruction
+    2. CLLDAR
+       - test for ordering ([**MP+rel+CLLDAR**](https://github.com/svdwall/herdtools7/commit/03c448313911e11ae29c2171fe4b6409616f0af0#diff-e7cf9486ace110b1585c5bab8eac64c890bb98defa07d338c30b9316e70b82e9R1))
+       - test for non-ordering with later memory instruction
          ([**MP+rel+CLLDAR-fail**](https://github.com/svdwall/herdtools7/commit/03c448313911e11ae29c2171fe4b6409616f0af0#diff-609655c09c0f39317bb981754e9152c589defcd7ed6830a596a78ef13859f1abR1))
-  |
+  | {class: changes}
+
+  parsing_changes: |md
+    **Parsing**
+
+    1. Introduce the instruction in AArch64Base.ml
+       ([**LLDAR**](https://github.com/svdwall/herdtools7/commit/cae6291049c4e2d52cb199b785d7f510315243e5#diff-87c59e17c30b4a451f5222d06442d112d13bc5348634c3664db613942d49cf4cR1254) reuses the LDAR struct, [**CLLDAR**](https://github.com/svdwall/herdtools7/commit/03c448313911e11ae29c2171fe4b6409616f0af0#diff-87c59e17c30b4a451f5222d06442d112d13bc5348634c3664db613942d49cf4cR1446))
+    2. Create them in menhir grammar
+       ([**LLDAR**](https://github.com/svdwall/herdtools7/commit/cae6291049c4e2d52cb199b785d7f510315243e5#diff-bf4e9be18ed9e7f82da1b4d172d634df793e6963c2f38955e52dfd5e6307d814R748), [**CLLDAR**](https://github.com/svdwall/herdtools7/commit/03c448313911e11ae29c2171fe4b6409616f0af0#diff-bf4e9be18ed9e7f82da1b4d172d634df793e6963c2f38955e52dfd5e6307d814R750))
+  | {class: changes}
+
+  candidates_changes: |md
+    **Instruction semantics**
+
+    1. Encode instruction semantics using the monad binders
+       ([**CLLDAR**](https://github.com/svdwall/herdtools7/commit/03c448313911e11ae29c2171fe4b6409616f0af0#diff-f2a12c2f4bc2d0aa25e415c57b77bfe6c912fb2a2b841e23fc03922cdeafb1ecR4241))
+    2. Write integration test ([**LLDAR**](https://github.com/svdwall/herdtools7/commit/cae6291049c4e2d52cb199b785d7f510315243e5#diff-7e3f509470844ba0a9291375ffa0e902741549ad6a7f6dfbc671b68a4f83515aR1), [**CLLDAR**](https://github.com/svdwall/herdtools7/commit/03c448313911e11ae29c2171fe4b6409616f0af0#diff-3633e9d5635759e4e77a9a37a43f3b06cb1fb62330e06491d4a10f03a6f7e403R1))
+  | {class: changes}
+
+  concrete_changes: {label: ""; style: {fill: transparent; stroke: transparent}}
+
+  checking_changes: |md
+    **Cat semantics**
+
+    1. Introduce a new cat annotation: LA (limited acquire)
+       ([**LA**](https://github.com/svdwall/herdtools7/commit/cae6291049c4e2d52cb199b785d7f510315243e5#diff-05772012f80903bb4d4dc5c9998c03e96d3a69e1f313be7d2e138a89bb93f4d3R19))
+    2. Introduce limited-acquire edges to the CAT model
+       ([**bob**](https://github.com/svdwall/herdtools7/commit/cae6291049c4e2d52cb199b785d7f510315243e5#diff-48de46133a6939978d62812c18eb510164eab583412b943fb1674f9d2cb10452R139))
+  | {class: changes}
+
+  printing_changes: {label: ""; style: {fill: transparent; stroke: transparent}}
+
+  # ───────────────────────── Hand-offs ─────────────────────────
+
+  inputs.litmus -> parsing
+  inputs.cat -> parsing
+  parsing -> candidates: "Test_herd.t" {class: handoff}
+  candidates -> concrete: "candidates\n+ constraints" {class: handoff}
+  concrete -> checking: "each S.concrete" {class: handoff}
+  checking -> printing: "Count.t → stats" {class: handoff}
 }
-
-# ───────────────────────── Hand-offs ─────────────────────────
-
-syntax -> semantics {class: handoff}
-semantics -> litmus {class: handoff}

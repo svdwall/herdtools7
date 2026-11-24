@@ -10,4 +10,4 @@ P0            | P1             ;
 STR  X0, [X1] | LLDAR X2, [X2] ;
 STLR X0, [X2] | LDR   X0, [X1] ;
 
-forall not (1:X2=1 /\ 1:X0=0)
+~exists (1:X2=1 /\ 1:X0=0)
